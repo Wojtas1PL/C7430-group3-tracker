@@ -6,13 +6,6 @@ app.config['Y'] = 0
 
 @app.route('/')
 def root():
-   # markers=[
-   # {
-   # 'lat':0,
-   # 'lon':0,
-   # 'popup':'This is the middle of the map.'
-   #  }
-   # ]
    return render_template('base.html')
 
 
@@ -29,7 +22,7 @@ def updater():
       app.config['Y'] = request.form.get('Y')
       return 'OK'
 
-   return 'shouldnt be here'
+   return "you shouldn't be here!"
 
 if __name__ == '__main__':
-   app.run(host="localhost", port=8080, debug=True)
+   app.run(host="localhost", port=8000, debug=True)
