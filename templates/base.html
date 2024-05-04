@@ -16,31 +16,23 @@ crossorigin=""></script>
 <div id="map"></div>
 <script src="{{ url_for('static', filename='map.js') }}"></script>
 <script>
-{% for marker in markers %}
-var marker = L.marker([{{ marker['lat'] }}, {{ marker['lon'] }}]).addTo(map)
-    .bindPopup("{{ marker['popup'] }}")
-    .openPopup();
+let existingMarker = L.marker([0, 0]).addTo(map)
+                    .bindPopup("Position of the phone")
+                    .openPopup();;
+setInterval(function() {
+    fetch('/data')
+        .then(response => response.json())
+        .then(data => {
+            const X = data.X;
+            const Y = data.Y;
 
-// Function to drift the marker
-function driftMarker(marker) {
-    var driftInterval = setInterval(function() {
-        var latLng = marker.getLatLng();
-        var newLatLng = L.latLng(
-            latLng.lat + (Math.random() - 0.5) * 5, // Adjust the drift intensity as needed
-            latLng.lng + (Math.random() - 0.5) * 5  // Adjust the drift intensity as needed
-        );
-        marker.setLatLng(newLatLng);
-    }, 100); // Adjust the drift speed as needed (milliseconds)
+            existingMarker.setLatLng([X, Y]);
+        })
+        .catch(error => {
+            console.error('Error fetching data:', error);
+        });
+}, 1000);
 
-    // Stop drifting after a certain time (e.g., 30 seconds)
-    setTimeout(function() {
-        clearInterval(driftInterval);
-    }, 30000); // Adjust the duration of the drift as needed (milliseconds)
-}
-
-driftMarker(marker);
-
-{% endfor %}
 
 </script>
 
