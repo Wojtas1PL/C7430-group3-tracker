@@ -1,9 +1,12 @@
 # C7430-group3-tracker
 Industrial Training project for C7430 course at Aalto University - group 3. A simple tracking service to view location of a mobile phone.
 
-## Prototype 1: Build on Server
+This Flask GPS Tracking System is a prototype designed to demonstrate real-time GPS tracking capabilities using Flask, Python, and OpenStreetMap. The system allows users to continuously monitor and update their GPS coordinates, which are then displayed on an interactive map interface.
 
-This web service utilizes Flask, a lightweight web application framework in Python, to create an application that displays the map location of a mobile device using OpenStreetMap.
+## Features
+- Real-time GPS tracking: Continuously tracks and updates the GPS coordinates of mobile devices.
+- Interactive map interface: Displays device locations on an interactive map powered by OpenStreetMap.
+- User-friendly interface: Provides a simple and intuitive interface for users to view and interact with device locations.
 
 ## Setup
 
@@ -28,30 +31,20 @@ To run this application locally, follow these steps:
 	python webservice/main.py
 	```
 
-4. **Access the Application**: Open your web browser and go to `http://localhost:8000` to view the application.
+## Usage
+1. Run the Flask server:
+   ```
+   python main.py
+   ```
 
-5. **Update Location Manually**: Once the web service is running, update your location and see how the application responds.
-	```bash
-	curl -d "X=60.18476992596687&Y=24.82209498028948" -X POST http://localhost:8000/data
-	```
-	Use this cURL command in the CMD to move the marker around (set your own X and Y values).
+2. Open a web browser and navigate to `http://localhost:8000` to access the web application.
 
-## Prototype 2: Build on Client
+3. Use the buttons on the interface to update your location, select preset locations, and toggle map layers.
 
-This prototype is a web application that uses OpenStreetMap and Google Maps to display and update the user's current GPS location. It features a map interface with toggleable map layers, allowing users to switch between OpenStreetMap and Google Maps views. The application provides a user-friendly interface with an "Update Location" button that updates the map with the user's current location and logs the coordinates along with a timestamp.
+## Configuration
+- The Flask server is configured to run on port 8000 by default. You can change the port in the `main.py` file if needed.
+- Ensure that your mobile device has location services enabled to allow the application to fetch GPS coordinates.
 
-```bash
-./index.html
-```
-
-**Features:**
-- **Map View:** Displays the user's current location using OpenStreetMap by default.
-- **Map Layer Toggle:** Users can switch between OpenStreetMap and Google Maps views.
-- **Location Update:** Click the "Update Location" button to fetch and display the current GPS location.
-- **Update History:** Logs the last six location updates, including coordinates and timestamps.
-- **User Manual:** A user manual accessible via a button, providing instructions on how to use the application.
-
-The prototype aims to offer a simple yet functional interface for tracking and updating the user's location, with a focus on ease of use and clear presentation of information.
 
 ## License
 

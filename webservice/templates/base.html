@@ -1,41 +1,286 @@
 <!doctype html>
 <html lang="en">
 <head>
-<title>Tracking Map Test</title>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="stylesheet" href="{{ url_for('static', filename='map.css') }}" />
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
-integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A=="
-crossorigin=""/>
-<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"
-integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA=="
-crossorigin=""></script>
+    <title>GPS Location with OpenStreetMap</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="{{ url_for('static', filename='map.css') }}" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
+    integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A=="
+    crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"
+    integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA=="
+    crossorigin=""></script>
+    <style>
+        body, html {
+            height: 100%;
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+        #map {
+            width: 100%;
+            height: 70vh;
+            margin-bottom: 10px;
+        }
+        #updateLogContainer {
+            width: 100%;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+        #updateLog {
+            font-size: 14px;
+            color: #333;
+            margin-bottom: 10px;
+            overflow-y: auto;
+            max-height: 40vh;
+        }
+        .control-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-bottom: 10px;
+        }
+        .control-buttons button {
+            margin: 5px;
+            padding: 10px 20px;
+            font-size: 14px;
+            cursor: pointer;
+            background: #f0f0f0;
+            border: 1px solid #ccc;
+            color: #333;
+            border-radius: 5px;
+        }
+        #updateButton {
+            background: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            width: 100%;
+            font-size: 14px;
+            margin-bottom: 10px;
+            padding: 10px 20px;
+            border-radius: 5px;
+        }
+
+        #updateButton:hover {
+            background: #0056b3;
+        }
+
+        #manualModal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.5);
+        }
+        #manualContent {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 600px;
+            border-radius: 5px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        #manualClose {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        #manualClose:hover,
+        #manualClose:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .map-layer-button.active,
+        #manualButton.active {
+            background-color: #007bff;
+            color: white;
+        }
+    </style>
 </head>
 <body>
-<div id="map"></div>
-<script src="{{ url_for('static', filename='map.js') }}"></script>
-<script>
-let existingMarker = L.marker([0, 0]).addTo(map)
-                    .bindPopup("Position of the phone")
-                    .openPopup();;
-setInterval(function() {
-    fetch('/data')
-        .then(response => response.json())
-        .then(data => {
-            const X = data.X;
-            const Y = data.Y;
+    <div id="map"></div>
+    <div id="updateLogContainer">
+        <!-- Update Location button -->
+        <button id="updateButton">Update Location</button>
 
-            existingMarker.setLatLng([X, Y]);
-        })
-        .catch(error => {
-            console.error('Error fetching data:', error);
+        <!-- Toggle buttons -->
+        <div class="control-buttons">
+            <button class="map-layer-button active" data-layer="OpenStreetMap">OpenStreetMap</button>
+            <button class="map-layer-button" data-layer="GoogleMaps">Google Maps</button>
+        </div>
+
+        <!-- Preset locations buttons and user manual -->
+        <div class="control-buttons">
+            <button onclick="setPresetLocation(60.1847409, 24.8228635)">A Bloc</button>
+            <button onclick="setPresetLocation(60.1865786, 24.8173757)">TUAS</button>
+            <button onclick="setPresetLocation(60.1687684, 24.9292346)">Kamppi</button>
+            <button id="manualButton" class="map-layer-button">User Manual</button>
+        </div>
+        <div id="updateLog">
+            <!-- History log will be appended here -->
+        </div>
+    </div>
+
+    <div id="manualModal">
+        <div id="manualContent">
+            <span id="manualClose">&times;</span>
+            <h2>User Manual</h2>
+            <p>This is the user manual for the GPS Location with OpenStreetMap application. Here you can find instructions on how to use the application.</p>
+            <p>1. To update your current location on the map, click the "Update Location" button.</p>
+            <p>2. You can switch between different map layers (OpenStreetMap and Google Maps) using the buttons above the map.</p>
+            <p>3. You can select preset locations (A Bloc, TUAS, Kamppi) by clicking the corresponding buttons.</p>
+            <p>4. If you need further assistance, please contact support.</p>
+        </div>
+    </div>
+
+    <script>
+        const map = L.map('map').setView([60.1840, 24.8277], 13);
+        let tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19
+        }).addTo(map);
+
+        let marker;
+        const MAX_LOG_ENTRIES = 4;
+        let currentZoomLevel = 13; // Initialize with a default zoom level
+
+        function addToUpdateLog(message) {
+            const updateLog = document.getElementById('updateLog');
+            const logEntry = document.createElement('p');
+            const time = new Date().toLocaleTimeString();
+            logEntry.textContent = `${time}: ${message}`;
+            updateLog.insertBefore(logEntry, updateLog.firstChild);
+
+            // Limit the number of entries in the update log
+            if (updateLog.children.length > MAX_LOG_ENTRIES) {
+                updateLog.removeChild(updateLog.lastChild);
+            }
+        }
+
+        function updateLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(position => {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+
+                    fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            const placeName = data.display_name || 'Unknown';
+
+                            if (marker) {
+                                map.removeLayer(marker);
+                            }
+
+                            marker = L.marker([lat, lon]).addTo(map)
+                                .bindPopup(placeName).openPopup();
+
+                            map.setView([lat, lon], currentZoomLevel); // Set view with current zoom level
+
+                            addToUpdateLog(`Updated location to: ${placeName}`);
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                        });
+                }, error => {
+                    alert(`Unable to retrieve your location due to ${error.message}`);
+                }, { maximumAge: 600000 });
+            } else {
+                alert("Geolocation is not supported by this browser.");
+            }
+        }
+
+        function setPresetLocation(lat, lon) {
+            fetch('/data', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: new URLSearchParams({ 'X': lat, 'Y': lon })
+            })
+            .then(response => response.text())
+            .then(result => {
+                console.log(result);
+                updateMap(lat, lon);
+            })
+            .catch(error => {
+                console.error('Error setting preset location:', error);
+            });
+        }
+
+        function updateMap(lat, lon) {
+            if (marker) {
+                map.removeLayer(marker);
+            }
+            marker = L.marker([lat, lon]).addTo(map).bindPopup(`Latitude ${lat.toFixed(6)}, Longitude ${lon.toFixed(6)}`).openPopup();
+            map.setView([lat, lon], currentZoomLevel); // Set view with current zoom level
+        }
+
+
+        // Update marker popup to display place name instead of coordinates
+        map.on('popupopen', function(event) {
+            const popup = event.popup;
+            const content = popup.getContent();
+            const latlng = popup.getLatLng();
+
+            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latlng.lat}&lon=${latlng.lng}`)
+                .then(response => response.json())
+                .then(data => {
+                    const placeName = data.display_name || 'Unknown';
+                    popup.setContent(placeName);
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
         });
-}, 1000);
 
 
-</script>
 
-<!---<script src="{{ url_for('static', filename='marker.js') }}"></script>-->
+
+        document.getElementById('updateButton').addEventListener('click', updateLocation);
+
+        document.querySelectorAll('.map-layer-button').forEach(button => {
+            button.addEventListener('click', function() {
+                document.querySelectorAll('.map-layer-button').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                this.classList.add('active');
+
+                const selectedLayer = this.getAttribute('data-layer');
+                switch (selectedLayer) {
+                    case 'OpenStreetMap':
+                        tileLayer.setUrl('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
+                        break;
+                    case 'GoogleMaps':
+                        tileLayer.setUrl('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}');
+                        break;
+                }
+            });
+        });
+
+        document.getElementById('manualButton').addEventListener('click', () => {
+            document.getElementById('manualModal').style.display = 'block';
+        });
+
+        document.getElementById('manualClose').addEventListener('click', () => {
+            document.getElementById('manualModal').style.display = 'none';
+        });
+
+        window.onclick = function(event) {
+            const modal = document.getElementById('manualModal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        };
+    </script>
 </body>
 </html>
