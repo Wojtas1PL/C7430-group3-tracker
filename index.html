@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GPS Location with OpenStreetMap</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        body, html {
+            height: 100%;
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+        #map {
+            width: 100%;
+            height: 70vh;
+            margin-bottom: 10px;
+        }
+        #updateLogContainer {
+            width: 100%;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+        #updateLog {
+            font-size: 14px;
+            color: #333;
+            margin-bottom: 10px;
+            overflow-y: auto;
+            max-height: 40vh;
+        }
+        #updateButton {
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            width: 100%;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        #updateButton:hover {
+            background: #0056b3;
+        }
+        #mapLayerToggle {
+            margin-bottom: 10px;
+        }
+        .map-layer-button {
+            background-color: #f0f0f0;
+            border: 1px solid #ccc;
+            color: #333;
+            cursor: pointer;
+            padding: 10px 20px;
+            font-size: 14px;
+            border-radius: 5px 5px 0 0;
+            margin-right: 5px;
+        }
+        .map-layer-button.active {
+            background-color: #007bff;
+            color: white;
+        }
+        #manualButton {
+            background-color: #f0f0f0;
+            border: 1px solid #ccc;
+            color: #333;
+            cursor: pointer;
+            padding: 10px 20px;
+            font-size: 14px;
+            border-radius: 5px 5px 0 0;
+            margin-right: 5px;
+        }
+        #manualButton:hover {
+            background-color: #007bff;
+            color: white;
+        }
+        #manualModal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.5);
+        }
+        #manualContent {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 600px;
+            border-radius: 5px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        #manualClose {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        #manualClose:hover,
+        #manualClose:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <div id="updateLogContainer">
+        <div id="mapLayerToggle">
+            <button class="map-layer-button active" data-layer="OpenStreetMap">OpenStreetMap</button>
+            <button class="map-layer-button" data-layer="GoogleMaps">Google Maps</button>
+            <button id="manualButton" class="map-layer-button">User Manual</button>
+        </div>
+        <button id="updateButton">Update Location</button>
+        <div id="updateLog">
+            <!-- History log will be appended here -->
+        </div>
+    </div>
+
+    <div id="manualModal">
+        <div id="manualContent">
+            <span id="manualClose">&times;</span>
+            <h2>User Manual</h2>
+            <p>This is the user manual for the GPS Location with OpenStreetMap application. Here you can find instructions on how to use the application.</p>
+            <p>1. To update your current location on the map, click the "Update Location" button.</p>
+            <p>2. You can switch between different map layers (OpenStreetMap and Google Maps) using the buttons above the map.</p>
+            <p>3. If you need further assistance, please <s>fuck off</s> kindly text us.</p>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script>
+        var map = L.map('map').setView([60.1840, 24.8277], 13);
+        var tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19
+        }).addTo(map);
+
+        var marker;
+
+        // Add an entry to the update log
+        function addToUpdateLog(message) {
+            var updateLog = document.getElementById('updateLog');
+            var logEntry = document.createElement('p');
+            var time = new Date().toLocaleTimeString();
+            logEntry.textContent = time + ': ' + message;
+            updateLog.insertBefore(logEntry, updateLog.firstChild);
+
+            // Limit the number of entries to 4
+            if (updateLog.children.length > 4) {
+                updateLog.removeChild(updateLog.lastChild);
+            }
+        }
+
+        function updateLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function(position) {
+                    var lat = position.coords.latitude;
+                    var lon = position.coords.longitude;
+
+                    // Fetch address information using reverse geocoding
+                    fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat=' + lat + '&lon=' + lon)
+                    .then(response => response.json())
+                    .then(data => {
+                        var streetAddress = data.address.road;
+                        var address = streetAddress ? streetAddress : 'Unknown';
+
+                        if (marker) {
+                            map.removeLayer(marker);
+                        }
+
+                        marker = L.marker([lat, lon]).addTo(map)
+                            .bindPopup(address).openPopup();
+
+                        map.setView([lat, lon], 13);
+
+                        addToUpdateLog('Latitude ' + lat.toFixed(6) + ', Longitude '+ lon.toFixed(6));
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                    });
+                }, function(error) {
+                    alert("Unable to retrieve your location due to " + error.message);
+                }, { maximumAge: 600000 }); // Remember the permission for 10 minutes (600000 milliseconds)
+            } else {
+                alert("Geolocation is not supported by this browser.");
+            }
+        }
+
+        // Manual update when button is clicked
+        document.getElementById('updateButton').addEventListener('click', function() {
+            updateLocation();
+        });
+
+        // Change map layer when button is clicked
+        document.querySelectorAll('.map-layer-button').forEach(function(button) {
+            button.addEventListener('click', function() {
+                // Remove 'active' class from all buttons
+                document.querySelectorAll('.map-layer-button').forEach(function(btn) {
+                    btn.classList.remove('active');
+                });
+                // Add 'active' class to
+                this.classList.add('active');
+
+                // Change map layer
+                var selectedLayer = this.getAttribute('data-layer');
+                switch (selectedLayer) {
+                    case 'OpenStreetMap':
+                        tileLayer.setUrl('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png');
+                        break;
+                    case 'GoogleMaps':
+                        tileLayer.setUrl('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}');
+                        break;
+                }
+            });
+        });
+
+        // Show user manual modal when button is clicked
+        document.getElementById('manualButton').addEventListener('click', function() {
+            document.getElementById('manualModal').style.display = 'block';
+        });
+
+        // Close user manual modal when close button is clicked
+        document.getElementById('manualClose').addEventListener('click', function() {
+            document.getElementById('manualModal').style.display = 'none';
+        });
+
+        // Close user manual modal when clicked outside the modal
+        window.onclick = function(event) {
+            var modal = document.getElementById('manualModal');
+            if (event.target == modal) {
+                modal.style.display = 'none';
+            }
+        };
+    </script>
+</body>
+</html>
+

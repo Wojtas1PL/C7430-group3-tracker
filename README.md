@@ -1,6 +1,8 @@
 # C7430-group3-tracker
 Industrial Training project for C7430 course at Aalto University - group 3. A simple tracking service to view location of a mobile phone.
 
+## Prototype 1: Build on Server
+
 This web service utilizes Flask, a lightweight web application framework in Python, to create an application that displays the map location of a mobile device using OpenStreetMap.
 
 ## Setup
@@ -33,6 +35,23 @@ To run this application locally, follow these steps:
 	curl -d "X=60.18476992596687&Y=24.82209498028948" -X POST http://localhost:8000/data
 	```
 	Use this cURL command in the CMD to move the marker around (set your own X and Y values).
+
+## Prototype 2: Build on Client
+
+This prototype is a web application that uses OpenStreetMap and Google Maps to display and update the user's current GPS location. It features a map interface with toggleable map layers, allowing users to switch between OpenStreetMap and Google Maps views. The application provides a user-friendly interface with an "Update Location" button that updates the map with the user's current location and logs the coordinates along with a timestamp.
+
+```bash
+./index.html
+```
+
+**Features:**
+- **Map View:** Displays the user's current location using OpenStreetMap by default.
+- **Map Layer Toggle:** Users can switch between OpenStreetMap and Google Maps views.
+- **Location Update:** Click the "Update Location" button to fetch and display the current GPS location.
+- **Update History:** Logs the last six location updates, including coordinates and timestamps.
+- **User Manual:** A user manual accessible via a button, providing instructions on how to use the application.
+
+The prototype aims to offer a simple yet functional interface for tracking and updating the user's location, with a focus on ease of use and clear presentation of information.
 
 ## License
 
